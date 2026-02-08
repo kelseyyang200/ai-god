@@ -98,7 +98,7 @@ async function initMic() {
   // 识别成功后的回调
   recognition.onresult = (event) => {
     const text = event.results[0][0].transcript;
-    console.log("🗣 人类说：", text);
+    console.log("🗣 人类说：", text);  // 输出到控制台，调试信息
     hint.textContent = `"${text}"`;  // 显示识别的文本
   };
 
@@ -132,6 +132,7 @@ mouth.addEventListener("click", async () => {
   }
 });
 </script>
+
 
 
 </body>
