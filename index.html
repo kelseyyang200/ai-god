@@ -87,7 +87,7 @@ async function startRecording() {
   recorder = new MediaRecorder(stream);
 
   recorder.ondataavailable = (e) => {
-    audioChunks.push(e.data);
+    audioChunks.push(e.data);  // 这里将每一段音频数据收集起来
   };
 
   recorder.onstop = async () => {
@@ -105,7 +105,7 @@ async function startRecording() {
     hint.textContent = `You said: "${data.transcript}"`;  // 显示识别的文本
   };
 
-  recorder.start();
+  recorder.start();  // 开始录音
   isRecording = true;
   mouth.classList.add("recording");
   hint.textContent = "Recording...";
@@ -116,7 +116,7 @@ async function startRecording() {
 async function stopRecording() {
   if (!isRecording) return;
 
-  recorder.stop();
+  recorder.stop();  // 停止录音
   isRecording = false;
   mouth.classList.remove("recording");
   hint.textContent = "Processing...";
@@ -126,12 +126,13 @@ async function stopRecording() {
 
 mouth.addEventListener("click", async () => {
   if (!isRecording) {
-    startRecording();
+    startRecording();  // 开始录音
   } else {
-    stopRecording();
+    stopRecording();  // 停止录音
   }
 });
 </script>
+
 
 
 
