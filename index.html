@@ -19,23 +19,27 @@
       -webkit-user-select: none;
     }
 
+    /* 神的结构 */
     #god {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 24px;
+      gap: 50px;  /* 调整间距，适配新的位置 */
     }
 
+    /* 眼睛 */
     #eye {
-      width: 140px;
-      height: 80px;
+      width: 280px;  /* 放大一倍 */
+      height: 160px;  /* 放大一倍 */
       background-image: url("./eye.png");
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center;
       pointer-events: none;
+      margin-top: -60px;  /* 向上移动一点 */
     }
 
+    /* 嘴巴（录音按钮） */
     #mouth {
       width: 160px;
       height: 120px;
@@ -45,6 +49,7 @@
       background-position: center;
       cursor: pointer;
       transition: transform 0.2s ease, opacity 0.2s ease;
+      margin-top: 20px;  /* 向下移动 */
     }
 
     #mouth.recording {
@@ -72,102 +77,59 @@
    1. Speech Recognition
 ========================= */
 
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
+let stream = null
+let recorder = null
+let chunks = []
+let isRecording = false
 
-if (!SpeechRecognition) {
-  alert("Your browser does not support speech recognition.");
+const mouth = document.getElementById("mouth")
+const hint = document.getElementById("hint")
+
+async function initMic() {
+  if (stream) return
+  stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  console.log("🎤 麦克风已初始化")
 }
-
-const recognition = new SpeechRecognition();
-recognition.lang = "en-US";
-recognition.interimResults = false;
-recognition.continuous = false;
-
-let isRecording = false;
 
 /* =========================
    2. 点击切换录音状态
 ========================= */
 
-const mouth = document.getElementById("mouth");
-const hint = document.getElementById("hint");
+mouth.addEventListener("click", async () => {
+  await initMic()
 
-mouth.addEventListener("click", toggleRecording);
-
-function toggleRecording() {
   if (!isRecording) {
-    startRecording();
+    // ▶️ 开始录音
+    chunks = []
+    recorder = new MediaRecorder(stream)
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data)
+    }
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "audio/webm" })
+      console.log("🛑 录音结束，音频大小：", blob.size)
+
+      // 这里以后接：发给 AI God
+      // sendToAI(blob)
+    }
+
+    recorder.start()
+    isRecording = true
+    mouth.classList.add("recording")
+    hint.textContent = "Listening… tap again to stop"
+
+    console.log("🔴 开始录音")
   } else {
-    stopRecording();
+    // ⏹ 停止录音
+    recorder.stop()
+    isRecording = false
+    mouth.classList.remove("recording")
+    hint.textContent = "Thinking…"
+    console.log("⏹ 停止录音")
   }
-}
-
-function startRecording() {
-  isRecording = true;
-  mouth.classList.add("recording");
-  hint.textContent = "Listening… tap again to stop";
-
-  recognition.start();
-  console.log("🎙️ Recording started");
-}
-
-function stopRecording() {
-  isRecording = false;
-  mouth.classList.remove("recording");
-  hint.textContent = "Thinking…";
-
-  recognition.stop();
-  console.log("🛑 Recording stopped");
-}
-
-/* =========================
-   3. 拿到人类的话
-========================= */
-
-recognition.onresult = (event) => {
-  const text = event.results[0][0].transcript;
-  console.log("🧑 Human:", text);
-
-  askGod(text);
-};
-
-recognition.onerror = (e) => {
-  console.error("Speech error:", e);
-  isRecording = false;
-  mouth.classList.remove("recording");
-  hint.textContent = "Tap mouth to speak";
-};
-
-/* =========================
-   4. 上帝回应（示例）
-========================= */
-
-function askGod(text) {
-  const verse =
-    "The Lord is near unto all them that call upon him. — Psalm 145:18";
-
-  speak(verse);
-}
-
-/* =========================
-   5. 上帝之声
-========================= */
-
-function speak(text) {
-  const utterance = new SpeechSynthesisUtterance(text);
-
-  utterance.lang = "en-US";
-  utterance.pitch = 0.6;
-  utterance.rate = 0.9;
-  utterance.volume = 1;
-
-  speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
-
-  hint.textContent = "Tap mouth to speak";
-  console.log("✝️ God spoke");
-}
+})
 </script>
 
 </body>
