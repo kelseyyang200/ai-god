@@ -74,61 +74,61 @@
 
 <script>
 let isRecording = false;
-let recognition;
-
+let recorder;
+let audioChunks = [];
 const mouth = document.getElementById("mouth");
 const hint = document.getElementById("hint");
 
-async function initMic() {
-  if (recognition) return;  // 如果初始化过，就不再初始化
+async function startRecording() {
+  if (isRecording) return;
 
-  // 初始化 SpeechRecognition
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  
-  if (!SpeechRecognition) {
-    alert("Your browser does not support Speech Recognition.");
-    return;
-  }
+  audioChunks = [];
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  recorder = new MediaRecorder(stream);
 
-  recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.interimResults = false;
-  recognition.continuous = false;
-
-  // 识别成功后的回调
-  recognition.onresult = (event) => {
-    const text = event.results[0][0].transcript;
-    console.log("🗣 人类说：", text);  // 输出到控制台，调试信息
-    hint.textContent = `"${text}"`;  // 显示识别的文本
+  recorder.ondataavailable = (e) => {
+    audioChunks.push(e.data);
   };
 
-  // 识别错误的回调
-  recognition.onerror = (e) => {
-    console.error("Speech error:", e);
-    hint.textContent = "…God did not hear clearly";
+  recorder.onstop = async () => {
+    const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'audio.mp3');
+
+    // 上传音频到服务器
+    const response = await fetch('http://localhost:3000/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+    hint.textContent = `You said: "${data.transcript}"`;  // 显示识别的文本
   };
 
-  // 识别结束后的回调
-  recognition.onend = () => {
-    isRecording = false;
-    mouth.classList.remove("recording");
-    console.log("🎧 识别结束");
-  };
+  recorder.start();
+  isRecording = true;
+  mouth.classList.add("recording");
+  hint.textContent = "Recording...";
+
+  console.log("🎙️ Recording started");
 }
 
-// 点击嘴巴开始/停止录音
+async function stopRecording() {
+  if (!isRecording) return;
+
+  recorder.stop();
+  isRecording = false;
+  mouth.classList.remove("recording");
+  hint.textContent = "Processing...";
+
+  console.log("🛑 Recording stopped");
+}
+
 mouth.addEventListener("click", async () => {
   if (!isRecording) {
-    await initMic();  // 确保麦克风初始化
-
-    recognition.start();
-    isRecording = true;
-    mouth.classList.add("recording");
-    hint.textContent = "Listening…";  // 提示正在录音
-    console.log("🔴 开始听");
+    startRecording();
   } else {
-    recognition.stop();
-    console.log("⏹ 停止听");
+    stopRecording();
   }
 });
 </script>
