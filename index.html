@@ -73,64 +73,56 @@
   </div>
 
 <script>
-/* =========================
-   1. Speech Recognition
-========================= */
-
-let stream = null
-let recorder = null
-let chunks = []
 let isRecording = false
 
 const mouth = document.getElementById("mouth")
 const hint = document.getElementById("hint")
 
-async function initMic() {
-  if (stream) return
-  stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-  console.log("🎤 麦克风已初始化")
+// ====== Web Speech API ======
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition
+
+if (!SpeechRecognition) {
+  alert("Your browser does not support Speech Recognition. Use Chrome.")
 }
 
-/* =========================
-   2. 点击切换录音状态
-========================= */
+const recognition = new SpeechRecognition()
+recognition.lang = "en-US"
+recognition.interimResults = false
+recognition.continuous = false
 
-mouth.addEventListener("click", async () => {
-  await initMic()
+recognition.onresult = (event) => {
+  const text = event.results[0][0].transcript
+  console.log("🗣 人类说：", text)
+  hint.textContent = `"${text}"`
+}
 
+recognition.onerror = (e) => {
+  console.error("Speech error:", e)
+  hint.textContent = "…God did not hear clearly"
+}
+
+recognition.onend = () => {
+  isRecording = false
+  mouth.classList.remove("recording")
+  console.log("🎧 识别结束")
+}
+
+// ====== 点击嘴巴 ======
+mouth.addEventListener("click", () => {
   if (!isRecording) {
-    // ▶️ 开始录音
-    chunks = []
-    recorder = new MediaRecorder(stream)
-
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data)
-    }
-
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: "audio/webm" })
-      console.log("🛑 录音结束，音频大小：", blob.size)
-
-      // 这里以后接：发给 AI God
-      // sendToAI(blob)
-    }
-
-    recorder.start()
+    recognition.start()
     isRecording = true
     mouth.classList.add("recording")
-    hint.textContent = "Listening… tap again to stop"
-
-    console.log("🔴 开始录音")
+    hint.textContent = "Listening…"
+    console.log("🔴 开始听")
   } else {
-    // ⏹ 停止录音
-    recorder.stop()
-    isRecording = false
-    mouth.classList.remove("recording")
-    hint.textContent = "Thinking…"
-    console.log("⏹ 停止录音")
+    recognition.stop()
+    console.log("⏹ 停止听")
   }
 })
 </script>
+
 
 </body>
 </html>
