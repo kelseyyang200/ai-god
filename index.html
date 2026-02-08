@@ -73,54 +73,64 @@
   </div>
 
 <script>
-let isRecording = false
+let isRecording = false;
+let recognition;
 
-const mouth = document.getElementById("mouth")
-const hint = document.getElementById("hint")
+const mouth = document.getElementById("mouth");
+const hint = document.getElementById("hint");
 
-// ====== Web Speech API ======
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition
+async function initMic() {
+  if (recognition) return;  // 如果初始化过，就不再初始化
 
-if (!SpeechRecognition) {
-  alert("Your browser does not support Speech Recognition. Use Chrome.")
-}
-
-const recognition = new SpeechRecognition()
-recognition.lang = "en-US"
-recognition.interimResults = false
-recognition.continuous = false
-
-recognition.onresult = (event) => {
-  const text = event.results[0][0].transcript
-  console.log("🗣 人类说：", text)
-  hint.textContent = `"${text}"`
-}
-
-recognition.onerror = (e) => {
-  console.error("Speech error:", e)
-  hint.textContent = "…God did not hear clearly"
-}
-
-recognition.onend = () => {
-  isRecording = false
-  mouth.classList.remove("recording")
-  console.log("🎧 识别结束")
-}
-
-// ====== 点击嘴巴 ======
-mouth.addEventListener("click", () => {
-  if (!isRecording) {
-    recognition.start()
-    isRecording = true
-    mouth.classList.add("recording")
-    hint.textContent = "Listening…"
-    console.log("🔴 开始听")
-  } else {
-    recognition.stop()
-    console.log("⏹ 停止听")
+  // 初始化 SpeechRecognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  
+  if (!SpeechRecognition) {
+    alert("Your browser does not support Speech Recognition.");
+    return;
   }
-})
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+  recognition.continuous = false;
+
+  // 识别成功后的回调
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    console.log("🗣 人类说：", text);
+    hint.textContent = `"${text}"`;  // 显示识别的文本
+  };
+
+  // 识别错误的回调
+  recognition.onerror = (e) => {
+    console.error("Speech error:", e);
+    hint.textContent = "…God did not hear clearly";
+  };
+
+  // 识别结束后的回调
+  recognition.onend = () => {
+    isRecording = false;
+    mouth.classList.remove("recording");
+    console.log("🎧 识别结束");
+  };
+}
+
+// 点击嘴巴开始/停止录音
+mouth.addEventListener("click", async () => {
+  if (!isRecording) {
+    await initMic();  // 确保麦克风初始化
+
+    recognition.start();
+    isRecording = true;
+    mouth.classList.add("recording");
+    hint.textContent = "Listening…";  // 提示正在录音
+    console.log("🔴 开始听");
+  } else {
+    recognition.stop();
+    console.log("⏹ 停止听");
+  }
+});
 </script>
 
 
